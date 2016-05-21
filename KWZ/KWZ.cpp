@@ -11,12 +11,16 @@ void CPM::wczytaj_dane()
 	plik.open("data10.txt");
 	plik >> _Liczba_zadan;
 	plik >> _Liczba_polaczen;
+	plik >> _dostepny_budzet;
+	_budzet = _dostepny_budzet;
 	_Zadania = new Task[_Liczba_zadan];
 	_Liczba_poprzednikow = new int[_Liczba_zadan];
 
 	for (int i = 0; i < _Liczba_zadan; ++i)
 	{
 		plik >> _Zadania[i].czas_trwania;
+		plik >> _Zadania[i].najmniejszy_czas;
+		plik >> _Zadania[i].koszt_skrocenia;
 		_Liczba_poprzednikow[i] = 0;
 	}
 
@@ -70,7 +74,7 @@ void CPM::sortuj_topoligicznie()
 
 	for (auto it :_KolejnoscTopologiczna)
 	{
-		std::cout << it << " ";
+		std::cout << it+1 << " ";
 	}
 }
 
@@ -128,6 +132,7 @@ void CPM::sciezka_krytyczna()
 		{
 			if (_Zadania[i].ES == _Zadania[i].LS && _Zadania[i].LS == _Sciezka)
 			{
+				_criticalPath.push_back(i);
 				std::cout << i + 1 << " " << _Zadania[i].ES << " " << _Zadania[i].EF << std::endl;
 				_Sciezka = _Zadania[i].EF;
 			}
@@ -146,6 +151,42 @@ void CPM::pokaz_wynik()
 	sciezka_krytyczna();
 }
 
+void CPM::alg()
+{
+	for (auto i = 0; i < _Liczba_zadan; ++i)
+		_shortenList.push_back( 0);
+	for (int i = _criticalPath.size() - 1; i > -1; --i)
+	{
+		auto newDuration = _Zadania[_criticalPath[i]].najmniejszy_czas;
+		auto oldDuration = _Zadania[_criticalPath[i]].czas_trwania;
+		auto cost = _Zadania[_criticalPath[i]].koszt_skrocenia;
+		while ((oldDuration - newDuration) * cost > _budzet)
+			++newDuration;
+		_Zadania[_criticalPath[i]].czas_trwania = newDuration;
+		_budzet -= (oldDuration - newDuration) * cost;
+		_shortenList[_criticalPath[i]] = oldDuration - newDuration;
+	}
+}
+void CPM::resulat()
+{
+	std::cout << "reduction scheduler time:" << std::endl << maxEf() << std::endl;
+	std::cout << "reduction cost: " << std::endl <<_dostepny_budzet - _budzet << std::endl;
+	std::cout << "reduction:" << std::endl;
+	for (int i = 0; i < _Liczba_zadan; ++i)
+		std::cout << _shortenList[i] << " ";
+}
+int CPM::maxEf()
+{
+	int maxEf = 0;
+	for (int i = 0; i <_Liczba_zadan; ++i) {
+		if (_Zadania[i].EF > maxEf)
+			maxEf = _Zadania[i].EF;
+	}
+	return maxEf;
+}
+
+
+
 int main()
 {
 	CPM p;
@@ -155,4 +196,8 @@ int main()
 	p.es_ef();
 	p.ls_lf();
 	p.pokaz_wynik();
+	p.alg();
+	p.resulat();
+	system("pause");
+	
 }
